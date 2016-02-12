@@ -34,9 +34,8 @@ impl<'a> Diff<'a> {
                                           .map(|(upper, lower)| {
                                               Chunk { content: &content[upper..lower] }
                                           })
-                                          .collect::<Vec<_>>()
-                                          .into_boxed_slice();
-        chunks
+                                          .collect::<Vec<_>>();
+        chunks.into_boxed_slice()
 
     }
 
@@ -88,7 +87,7 @@ impl<'a> File<'a> {
 
 impl<'a> Chunk<'a> {
     pub fn content(&self) -> &str {
-      &self.content
+        &self.content
     }
 }
 
