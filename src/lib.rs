@@ -126,8 +126,6 @@ index 071b9ee..5dd607e 100644
  
  [dependencies]
 +
-+
-+
 "###;
 
     let diff = Diff::parse(patch);
