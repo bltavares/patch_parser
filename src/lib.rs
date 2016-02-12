@@ -71,13 +71,8 @@ impl<'a> Diff<'a> {
         }
     }
 
-
     pub fn files(&self) -> &[File] {
         &self.file_points
-    }
-
-    pub fn content(&self) -> &str {
-      &self.content
     }
 }
 
@@ -88,10 +83,6 @@ impl<'a> File<'a> {
 
     pub fn chunks(&self) -> &[Chunk] {
         &self.chunk_points
-    }
-
-    pub fn content(&self) -> &str {
-      &self.content
     }
 }
 
