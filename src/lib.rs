@@ -16,53 +16,20 @@ pub struct Diff<'a> {
 }
 
 impl<'a> Diff<'a> {
-    fn parse_cunks(content: &str) -> Box<[Chunk]> {
-        let mut upper_file_boundaries = Vec::new();
-        let mut idx = 0;
-        for line in content.lines() {
-            if line.starts_with("@@ ") {
-                upper_file_boundaries.push(idx);
-            }
-            idx += line.len() + 1;
-        }
-
-        let mut lower_file_boundaries = upper_file_boundaries[1..].to_vec();
-        lower_file_boundaries.push(idx);
-
-        let chunks = upper_file_boundaries.drain(..)
-                                          .zip(lower_file_boundaries)
-                                          .map(|(upper, lower)| {
-                                              Chunk { content: &content[upper..lower] }
-                                          })
-                                          .collect::<Vec<_>>();
-        chunks.into_boxed_slice()
-
-    }
-
     pub fn parse(content: &str) -> Diff {
-        let mut upper_file_boundaries = Vec::new();
-        let mut idx = 0;
-        for line in content.lines() {
-            if line.starts_with("+++ ") {
-                upper_file_boundaries.push(idx);
+        let extract_files = |(upper, lower)| {
+            let file_content = &content[upper..lower];
+            let chunks = Diff::parse_chunks(&file_content);
+            File {
+                content: file_content,
+                chunk_points: chunks,
             }
-            idx += line.len() + 1;
-        }
+        };
 
-        let mut lower_file_boundaries = upper_file_boundaries[1..].to_vec();
-        lower_file_boundaries.push(idx);
-
-        let files = upper_file_boundaries.drain(..)
-                                         .zip(lower_file_boundaries)
-                                         .map(|(upper, lower)| {
-                                             let file_content = &content[upper..lower];
-                                             let chunks = Diff::parse_cunks(&file_content);
-                                             File {
-                                                 content: file_content,
-                                                 chunk_points: chunks,
-                                             }
-                                         })
-                                         .collect::<Vec<_>>();
+        let mut boundaries = extract_boundaries_on(content, "+++ ");
+        let files = boundaries.drain(..)
+                              .map(extract_files)
+                              .collect::<Vec<_>>();
 
         Diff {
             content: content,
@@ -72,6 +39,14 @@ impl<'a> Diff<'a> {
 
     pub fn files(&self) -> &[File] {
         &self.file_points
+    }
+
+    fn parse_chunks(content: &str) -> Box<[Chunk]> {
+        let mut boundaries = extract_boundaries_on(content, "@@ ");
+        let chunks = boundaries.drain(..)
+                               .map(|(upper, lower)| Chunk { content: &content[upper..lower] })
+                               .collect::<Vec<_>>();
+        chunks.into_boxed_slice()
     }
 }
 
@@ -89,6 +64,23 @@ impl<'a> Chunk<'a> {
     pub fn content(&self) -> &str {
         &self.content
     }
+}
+
+fn extract_boundaries_on(content: &str, needle: &str) -> Vec<(usize, usize)> {
+    let mut upper_file_boundaries = Vec::new();
+    let mut idx = 0;
+    for line in content.lines() {
+        if line.starts_with(needle) {
+            upper_file_boundaries.push(idx);
+        }
+        idx += line.len() + 1;
+    }
+
+    let mut lower_file_boundaries = upper_file_boundaries[1..].to_vec();
+    lower_file_boundaries.push(idx);
+
+    let chunks = upper_file_boundaries.drain(..).zip(lower_file_boundaries);
+    chunks.collect()
 }
 
 #[test]
